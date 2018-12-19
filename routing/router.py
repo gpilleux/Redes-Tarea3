@@ -86,6 +86,8 @@ class Router(object):
                 
         
         '''
+        # TODO cual puerto se debería guardar en caso de ser uno a enviar por vecino
+        # Posiblemente usar otro campo en el mensaje para entregar el puerto utilizado del router que envia su tabla
         self.routing_table[self.name] = json.dumps(
             {'nombre': self.name, 'hops': 0, 'neighbour_name': "None", 'port': list(self.ports.keys())})
 
@@ -116,9 +118,8 @@ class Router(object):
             if message['destination'] == self.name:
                 self._success(message['data'])
             else:
-                # Randomly choose a port to forward
-                # TODO Utilizar tabla de ruteo
                 '''
+                # Randomly choose a port to forward
                 port = choice(list(self.ports.keys()))
                 self._log("Forwarding to port {}".format(port))
                 self.ports[port].send_packet(packet)
@@ -130,6 +131,7 @@ class Router(object):
                     # Encontrar al router vecino para continuar el ruteo
                     final_router = json.loads(self.routing_table[message['destination']])['neighbour_name']
                 # Enviar mensaje al puerto del router vecino
+                # TODO ver de usar lista o solo uno en especifico
                 port = choice(list(final_router['port']))
                 self._log("Forwarding to port {}".format(port))
                 self.ports[port].send_packet(packet)
