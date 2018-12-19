@@ -2,6 +2,28 @@ from queue import Queue
 from threading import Thread
 import socket
 
+'''
+Clase que modela el puerto de un router; se modela como un thread
+que es levantado por el Router. Un router por un determinado puerto puede recibir y
+mandar tráfico simultáneamente, lo que no es posible (o al menos recomendado) con
+sockets.
+
+Para modelar este comportamiento, un puerto usa dos puertos del sistema operativo, uno para enviar los datos (output) y otro para recibir los datos (input).
+
+El RouterPort guarda datos que debe mandar en una cola, y revisa constantemente si esta cola tiene algo para mandar. Cuando tiene un paquete que mandar,
+crea un socket con el puerto de output y manda el paquete, cerrando el socket
+cuando termina.
+
+Para recibir los datos constantemente, cada RouterPort levanta un thread hace
+binding del socket de entrada y está escuchando por nueva data. Cuando recibe
+un paquete, lo envía al router usando el método de callback definido (por defecto
+en la implementación, _new_packet_received), para que decida que hacer
+con él.
+
+Cuando se tiene un paquete que enviar, el Router lo pone en una cola que controla
+el RouterPort.
+
+'''
 
 class RouterPort(Thread):
     def __init__(self, input_port, output_port, callback_new_packet):

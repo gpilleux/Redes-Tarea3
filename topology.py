@@ -2,6 +2,12 @@
 import json
 from routing.router import Router
 
+'''
+Contiene dos funciones, start (que dado un archivo de topología crea los
+routers necesarios, levantando threads como sea necesario) y stop (para terminar los
+threads correctamente).
+'''
+
 update_time = 5
 
 
