@@ -6,6 +6,10 @@
         {
           "input": 12345,
           "output": 12346
+        },
+        {
+          "input": 11234,
+          "output": 22345
         }
       ]
     },
@@ -32,6 +36,62 @@
         {
           "input": 5555,
           "output": 5656
+        },
+        {
+          "input": 6666,
+          "output": 1666
+        },
+        {
+          "input": 7777,
+          "output": 1777
+        }
+      ]
+    },
+    {
+      "name": "Router#4",
+      "ports": [
+        {
+          "input": 1666,
+          "output": 6666
+        }
+      ]
+    },
+    {
+      "name": "Router#5",
+      "ports": [
+        {
+          "input": 1777,
+          "output": 7777
+        },
+        {
+          "input": 3777,
+          "output": 7773
+        }
+      ]
+    },
+    {
+      "name": "Router#6",
+      "ports": [
+        {
+          "input": 4444,
+          "output": 4321
+        },
+        {
+          "input": 8888,
+          "output": 2020
+        }
+      ]
+    },
+    {
+      "name": "Router#7",
+      "ports": [
+        {
+          "input": 7773,
+          "output": 3777
+        },
+        {
+          "input": 2020,
+          "output": 8888
         }
       ]
     }

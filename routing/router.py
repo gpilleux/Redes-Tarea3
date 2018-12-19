@@ -97,15 +97,20 @@ class Router(object):
             if message['destination'] == self.name:
                 self._success(message['data'])
             else:
-                final_router = json.loads(self.routing_table[message['destination']])
-                # Revisar que sea un router vecino o no
-                if final_router['neighbour_name'] != 'None':
-                    # Encontrar al router vecino para continuar el ruteo
-                    final_router = json.loads(self.routing_table[message['destination']])['neighbour_name']
-                # Enviar mensaje al puerto del router vecino
-                port = choice(list(final_router['port']))
-                self._log("Forwarding to port {}".format(port))
-                self.ports[port].send_packet(packet)
+                try:
+                    final_router = json.loads(self.routing_table[message['destination']])
+                    # Revisar que sea un router vecino o no
+                    if final_router['neighbour_name'] != 'None':
+                        # Encontrar al router vecino para continuar el ruteo
+                        next_router = json.loads(self.routing_table[message['destination']])['neighbour_name']
+                        final_router = json.loads(self.routing_table[next_router])
+                    # Enviar mensaje al puerto del router vecino
+                    port = list(final_router['port'])[0]  # choice(list(final_router['port']))
+                    self._log("Forwarding to port {}".format(port))
+                    self.ports[port].send_packet(packet)
+                except KeyError:
+                    self._log("Destination router not in table")
+
         elif 'routing_table' in message:
             neighbour_RT = message['routing_table']
 
@@ -153,7 +158,6 @@ class Router(object):
         :return: None
         """
         self._log("Broadcasting")
-        # TODO
         for o_port in list(self.ports.keys()):
             self._log("Forwarding to port {}".format(o_port))
             self.ports[o_port].send_packet(str.encode(json.dumps({'routing_table': self.routing_table})))
