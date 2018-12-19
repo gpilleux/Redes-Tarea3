@@ -87,7 +87,7 @@ class Router(object):
         
         '''
         self.routing_table[self.name] = json.dumps(
-            {'nombre': self.name, 'hops': 1, 'neighbour_name': "None", 'port': list(self.ports.keys())})
+            {'nombre': self.name, 'hops': 0, 'neighbour_name': "None", 'port': list(self.ports.keys())})
 
 
         '''
@@ -118,7 +118,19 @@ class Router(object):
             else:
                 # Randomly choose a port to forward
                 # TODO Utilizar tabla de ruteo
+                '''
                 port = choice(list(self.ports.keys()))
+                self._log("Forwarding to port {}".format(port))
+                self.ports[port].send_packet(packet)
+                '''
+
+                final_router = json.loads(self.routing_table[message['destination']])
+                # Revisar que sea un router vecino o no
+                if final_router['neighbour_name'] != 'None':
+                    # Encontrar al router vecino para continuar el ruteo
+                    final_router = json.loads(self.routing_table[message['destination']])['neighbour_name']
+                # Enviar mensaje al puerto del router vecino
+                port = choice(list(final_router['port']))
                 self._log("Forwarding to port {}".format(port))
                 self.ports[port].send_packet(packet)
         elif 'routing_table' in message:
@@ -156,7 +168,9 @@ class Router(object):
             for key in neighbour_RT:
                 #print(neighbour_RT[key])
                 RT = json.loads(neighbour_RT[key])
-                self_RT = json.loads(self.routing_table[RT['nombre']])
+                print(RT)
+                # usar el nombre de este router y no del que viene en la tabla del vecino SAGFAGAFDSGAG #
+                self_RT = json.loads(self.routing_table[self.name])
                 if RT['nombre'] in self.routing_table:
                     print("Existe")
                     print(RT['hops'])
@@ -220,4 +234,5 @@ class Router(object):
         for port in self.ports.values():
             port.join()
 
+        self._log(self.routing_table)
         self._log("Stopped")

@@ -7,7 +7,7 @@ routers = start('topology.json')
 #send_packet(4321, json.dumps({'destination': "Router#1", 'data': "Saludines"}))
 
 d = dict()
-d['algo'] = json.dumps({'nombre': "Router#2", 'hops': 0, 'neighbour_name': "None", 'port': [10]})
+d['algo'] = json.dumps({'nombre': "Router#1", 'hops': 0, 'neighbour_name': "None", 'port': [12345]})
 
 '''
 for key in d:
@@ -18,6 +18,8 @@ for key in d:
         '''
 
 send_packet(4321, json.dumps({'routing_table': d}))
+
+send_packet(4321, json.dumps({'destination': "Router#1", 'data': "Saludines"}))
 
 time.sleep(10)
 
