@@ -16,6 +16,7 @@ class Router(object):
         self.name = name
         self.update_time = update_time
         self.ports = dict()
+        self.input_to_output = dict()
         self._init_ports(ports)
         self.timer = None
         self.logging = logging
@@ -55,6 +56,10 @@ class Router(object):
             )
 
             self.ports[output_port] = router_port
+            self.input_to_output[input_port] = output_port
+        print("Puertos")
+        print(self.name)
+        print(self.ports)
 
     def _init_routing_table(self):
         """
@@ -87,9 +92,9 @@ class Router(object):
         
         '''
         # TODO cual puerto se debería guardar en caso de ser uno a enviar por vecino
-        # Posiblemente usar otro campo en el mensaje para entregar el puerto utilizado del router que envia su tabla
+        # Posiblemente usar otro campo en el mensaje para entregar el puerto utilizado  del router que envia su tabla
         self.routing_table[self.name] = json.dumps(
-            {'nombre': self.name, 'hops': 0, 'neighbour_name': "None", 'port': list(self.ports.keys())})
+            {'nombre': self.name, 'hops': 0, 'neighbour_name': "None", 'port': list(self.input_to_output.keys())})
 
 
         '''
@@ -135,7 +140,7 @@ class Router(object):
                 port = choice(list(final_router['port']))
                 self._log("Forwarding to port {}".format(port))
                 self.ports[port].send_packet(packet)
-        elif 'routing_table' in message:
+        elif 'routing_table' in message and 'my_input_port' in message:
             # TODO ver que parametro le pasamos en la tabla: una lista o un puerto especifico?
             '''
             diccionario -> 
