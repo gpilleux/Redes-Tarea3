@@ -4,23 +4,15 @@ import json
 import time
 
 routers = start('topology.json')
-#send_packet(4321, json.dumps({'destination': "Router#1", 'data': "Saludines"}))
 
-d = dict()
-d['algo'] = json.dumps({'nombre': "Router#1", 'hops': 0, 'neighbour_name': "None", 'port': [12345]})
-
-'''
-for key in d:
-    if("nombre" in d[key]):
-        print(d[key])
-    else:
-        print("naite")
-        '''
-
-send_packet(4321, json.dumps({'routing_table': d}))
-
-send_packet(4321, json.dumps({'destination': "Router#1", 'data': "Saludines"}))
-
+# Esperar un tiempo para que los routers comuniquen sus tablas de ruteo para evitar perdida de paquetes
 time.sleep(10)
 
+# Seccion: Paquetes a enviar
+send_packet(12345, json.dumps({'destination': "Router#2", 'data': "Saludines"}))
+
+time.sleep(3)
+
+
+# Fin Seccion: Paquetes a enviar
 stop(routers)

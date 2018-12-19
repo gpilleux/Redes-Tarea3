@@ -11,16 +11,21 @@ Un router tiene puertos que utiliza para comunicarse con otros routers (estos pu
 '''
 
 
+'''
+Cambiar topologia
+
+'''
+
 class Router(object):
     def __init__(self, name, update_time, ports, logging=True):
         self.name = name
+        self.logging = logging
         self.update_time = update_time
         self.ports = dict()
         self.input_to_output = dict()
         self._init_ports(ports)
         self.timer = None
-        self.logging = logging
-        self.routing_table = {}
+        self.routing_table = dict()
         self._init_routing_table()
 
     # el paquete es para el router que lo recibe, se imprime la data que lleva en consola.
@@ -57,9 +62,8 @@ class Router(object):
 
             self.ports[output_port] = router_port
             self.input_to_output[input_port] = output_port
-        print("Puertos")
-        print(self.name)
-        print(self.ports)
+
+        self._log("Puertos: {}".format(self.ports))
 
     def _init_routing_table(self):
         """
@@ -68,42 +72,12 @@ class Router(object):
         """
         '''
         Tabla: nombre_router | hops | nombre_vecino | puerto
-        
-        Router#1 -> Router#2
-        Router#2 -> Router#3
-        Router#3 -> Router#4
-        
-        Router#2 solicita tabla a Router#3
-            Guarda: Router#2 0 None p_Router#2
-                    Router#3 1 None p_Router#3
-        
-        Router#1 solicita tabla a Router#2
-            Guarda: Router#1 0 None p_Router#1
-                    Router#2 1 None p_Router#2
-                    Router#3 2 Router#2 p_Router#3
-                    Router#4 3 Router#2 p_Router#4
-                    
-        Si quiuero enviar un msj del #1 al #3
-            Buscar en tabla Router#3 -> Router#3 2 Router#2 p_Router#3
-                Se que debo comunicarme con Router#3 mediante puerto_Router#3 a traves del Router#2
-            Buscar en tabla Router#2 -> Router#2 1 None p_Router#2
-                Enviar a Router#2, indicandole el puerto destinatario = p_Router#3
-                
-        
         '''
-        # TODO cual puerto se debería guardar en caso de ser uno a enviar por vecino
-        # Posiblemente usar otro campo en el mensaje para entregar el puerto utilizado  del router que envia su tabla
+
         self.routing_table[self.name] = json.dumps(
             {'nombre': self.name, 'hops': 0, 'neighbour_name': "None", 'port': list(self.input_to_output.keys())})
 
 
-        '''
-        enviar mensajes
-            queremos rutear a Router#n
-                escogemos puerto alzar del Router#n de nuestro diccionario
-        '''
-
-    # cuando se recibe un nuevo paquete de un puerto, se revisa el destino del paquete: si es para el router, se llama a _success, sino, se elige a quien forwardear el paquete.
     def _new_packet_received(self, packet):
         """
         Internal method called as callback when a packet is received.
@@ -123,80 +97,52 @@ class Router(object):
             if message['destination'] == self.name:
                 self._success(message['data'])
             else:
-                '''
-                # Randomly choose a port to forward
-                port = choice(list(self.ports.keys()))
-                self._log("Forwarding to port {}".format(port))
-                self.ports[port].send_packet(packet)
-                '''
-
                 final_router = json.loads(self.routing_table[message['destination']])
                 # Revisar que sea un router vecino o no
                 if final_router['neighbour_name'] != 'None':
                     # Encontrar al router vecino para continuar el ruteo
                     final_router = json.loads(self.routing_table[message['destination']])['neighbour_name']
                 # Enviar mensaje al puerto del router vecino
-                # TODO ver de usar lista o solo uno en especifico
                 port = choice(list(final_router['port']))
                 self._log("Forwarding to port {}".format(port))
                 self.ports[port].send_packet(packet)
-        elif 'routing_table' in message and 'my_input_port' in message:
-            # TODO ver que parametro le pasamos en la tabla: una lista o un puerto especifico?
-            '''
-            diccionario -> 
-                muchos nombres
-                    hops
-                    listado de puertos
-
-                    existe este nombre en nuestro diccionario?
-                        existe: hops < hops nuestro?
-                            intercambiar...
-                        no existe:
-                            agregarlo
-                            
-            Tabla: nombre_router | hops | nombre_vecino | puerto
-            
-            Router#1 -> Router#2
-            Router#2 -> Router#3
-            Router#3 -> Router#4
-            
-            Router#2 solicita tabla a Router#3
-                Guarda: Router#2 0 None p_Router#2
-                        Router#3 1 None p_Router#3
-            
-            Router#1 solicita tabla a Router#2
-                Guarda: Router#1 0 None p_Router#1
-                        Router#2 1 None p_Router#2
-                        Router#3 2 Router#2 p_Router#3
-                        Router#4 3 Router#2 p_Router#4
-            '''
+        elif 'routing_table' in message:
             neighbour_RT = message['routing_table']
-            # diccionario = message['routing_table']
+
+            is_first = True
+            first_router_name = ""
+
             for key in neighbour_RT:
-                #print(neighbour_RT[key])
                 RT = json.loads(neighbour_RT[key])
-                print(RT)
-                # usar el nombre de este router y no del que viene en la tabla del vecino SAGFAGAFDSGAG #
+                if is_first:
+                    neighbour = "None"
+                    first_router_name = RT['nombre']
+                    is_first = False
+                else:
+                    neighbour = first_router_name
+
                 self_RT = json.loads(self.routing_table[self.name])
+
+                # Si es vecino, vemos a que port nos corresponde
+                if RT['neighbour_name'] == "None":
+                    port_matched = self._match_my_port(list(RT['port']))
+                else:
+                    port_matched = list(RT['port'])
+
                 if RT['nombre'] in self.routing_table:
-                    print("Existe")
-                    print(RT['hops'])
-                    print(self_RT['hops'])
                     if int(RT['hops']) + 1 < int(self_RT['hops']):
-                        print("Menos hops")
+                        self._log("Modificando la tabla para {}, menos hops".format(RT['nombre']))
                         # Actualizar fila de nuestra tabla
                         self.routing_table[RT['nombre']] = json.dumps(
                             {'nombre': RT['nombre'], 'hops': int(RT['hops']) + 1,
-                             'neighbour_name': RT['nombre'], 'port': list(RT['port'])})
+                             'neighbour_name': neighbour, 'port': port_matched})
                 else:
-                    print("No existe, agregandolo...")
+                    self._log("No existe {}, agregandolo...".format(RT['nombre']))
                     # Agregarlo
                     self.routing_table[RT['nombre']] = json.dumps(
                         {'nombre': RT['nombre'], 'hops': RT['hops'] + 1,
-                         'neighbour_name': "None", 'port': list(RT['port'])})
+                         'neighbour_name': neighbour, 'port': port_matched})
 
-            print("Imprimir RT")
-            print(self.routing_table)
         else:
             self._log("Malformed packet")
 
@@ -208,10 +154,10 @@ class Router(object):
         """
         self._log("Broadcasting")
         # TODO
-        '''
-        para cada out_port:
-            enviar self.routing_table
-        '''
+        for o_port in list(self.ports.keys()):
+            self._log("Forwarding to port {}".format(o_port))
+            self.ports[o_port].send_packet(str.encode(json.dumps({'routing_table': self.routing_table})))
+
         self.timer = Timer(self.update_time, lambda: self._broadcast())
         self.timer.start()
 
@@ -243,3 +189,20 @@ class Router(object):
 
         self._log(self.routing_table)
         self._log("Stopped")
+
+
+
+    def _match_my_port(self, list_port):
+        '''
+        Entrega el port de comunicacion
+        :param list_port:
+        :return:
+        '''
+        result_port = []
+        # Iterar sobre nuestros output_ports
+        for my_port in list(self.ports.keys()):
+            if my_port in list_port:
+                result_port.append(my_port)
+
+        return result_port
+
